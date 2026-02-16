@@ -93,4 +93,55 @@ LIMIT 5;
 
 -- Segment customers into New, Returning and Loyal based on their total number of previous purchases the show the count of each segment
 
+WITH customer_type AS (
+	SELECT 
+		customer_id, 
+		previous_purchases,
+		CASE
+			WHEN previous_purchases = 1 THEN 'New'
+			WHEN previous_purchases BETWEEN 2 And 10 THEN 'Returning'
+			ELSE 'Loyal'
+		END AS customer_segment
+	FROM customers
+)
 
+SELECT
+	customer_segment,
+	COUNT(customer_segment) AS segment_count
+FROM customer_type
+GROUP BY customer_segment
+ORDER BY segment_count DESC;
+
+-- Top three most purchased products within each category
+
+WITH popular_products AS (
+	SELECT
+		category,
+		item_purchased AS product,
+		COUNT(item_purchased) AS product_count, 
+		ROW_NUMBER() OVER(PARTITION BY category ORDER BY COUNT(item_purchased) DESC) AS product_rank
+	FROM customers
+	GROUP BY category, item_purchased
+)
+
+SELECT *
+FROM popular_products
+WHERE product_rank <= 3;
+
+-- Are customers who are repeat buyers (more than 5 previous purchases) also likely subscribe ?
+
+SELECT
+	subscription_status,
+	COUNT(customer_id) AS repeat_buyers
+FROM customers
+WHERE previous_purchases > 5
+GROUP BY subscription_status;
+
+-- Revenue contribution of each age group
+
+SELECT 
+	age_group,
+	SUM(purchase_amount) AS revenue_contribution
+FROM customers
+GROUP BY age_group
+ORDER BY revenue_contribution;
